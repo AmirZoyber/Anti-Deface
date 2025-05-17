@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from sklearn.ensemble import IsolationForest
 import joblib  # برای ذخیره مدل
-
+import time
 
 def get_page_features(url):
     response = requests.get(url)
@@ -17,3 +17,30 @@ def get_page_features(url):
     }
     
     return features
+
+# جمع‌آوری دیتا برای آموزش
+X_train = [get_page_features('https://mysite.com').values() for _ in range(10)]  # چندبار اجرا کن تا نوسانات طبیعی رو بگیری
+
+# آموزش مدل
+model = IsolationForest(contamination=0.1)
+model.fit(X_train)
+
+# ذخیره مدل
+joblib.dump(model, 'deface_detector.pkl')
+
+
+
+def check_deface():
+    model = joblib.load('deface_detector.pkl')
+    current_features = list(get_page_features('https://mysite.com').values())
+    prediction = model.predict([current_features])  # 1 = سالم، -1 = ناهنجاری
+    
+    if prediction[0] == -1:
+        print("❗ صفحه احتمالا دیفیس شده! سریع بررسی کن")
+    else:
+        print("✅ صفحه سالمه")
+
+# هر ۵ دقیقه چک کن
+while True:
+    check_deface()
+    time.sleep(300)
